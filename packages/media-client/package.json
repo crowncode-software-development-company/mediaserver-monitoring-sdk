@@ -1,0 +1,23 @@
+{
+  "name": "@mediaserver/media-client",
+  "version": "1.0.0",
+  "description": "Media Server Client SDK for WebRTC interactions",
+  "author": "Crowncode",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc -w"
+  },
+  "devDependencies": {
+    "@types/uuid": "^10.0.0",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "uuid": "^13.0.0"
+  }
+}

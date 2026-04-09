@@ -1,0 +1,130 @@
+import { TypedEventEmitter } from './utils/EventEmitter';
+import { Logger } from './Logger';
+const logger = Logger.getInstance();
+/**
+ * Абстрактный базовый класс для управления видео-потоками.
+ *
+ * StreamManager связывает объект Stream с HTML video элементами
+ * и эмитит события о состоянии воспроизведения.
+ *
+ * Наследники: Subscriber (и Publisher, если будет).
+ */
+export class StreamManager extends TypedEventEmitter {
+    stream;
+    videos = [];
+    remote;
+    canPlayListener;
+    constructor(stream) {
+        super();
+        this.stream = stream;
+        this.stream.streamManager = this;
+        this.remote = !this.stream.isLocal();
+        this.canPlayListener = () => {
+            this.emit('streamPlaying', { streamManager: this });
+        };
+    }
+    /**
+     * Привязать HTML video-элемент к этому потоку.
+     *
+     * Устанавливает srcObject, настраивает свойства видео,
+     * и регистрирует обработчик воспроизведения.
+     *
+     * @returns 1 если элемент добавлен, 0 если уже был, -1 если был перенесён
+     */
+    addVideoElement(video) {
+        this.initializeVideoProperties(video);
+        if (!this.remote && this.stream.displayMyRemote()) {
+            const ms = this.stream.getMediaStream();
+            if (ms && video.srcObject !== ms) {
+                video.srcObject = ms;
+            }
+        }
+        if (this.videos.some(v => v.video === video)) {
+            return 0;
+        }
+        let returnNumber = 1;
+        for (const sm of this.stream.session.streamManagers) {
+            if (sm.disassociateVideo(video)) {
+                returnNumber = -1;
+                break;
+            }
+        }
+        this.pushNewStreamManagerVideo({
+            video,
+            id: video.id,
+            canplayListenerAdded: false,
+        });
+        logger.info('New video element associated to stream', this.stream.streamId);
+        return returnNumber;
+    }
+    updateMediaStream(mediaStream) {
+        this.videos.forEach((smv) => {
+            smv.video.srcObject = mediaStream;
+        });
+    }
+    /**
+     * Отвязать video-элемент от этого StreamManager.
+     */
+    disassociateVideo(video) {
+        for (let i = 0; i < this.videos.length; i++) {
+            if (this.videos[i].video === video) {
+                this.videos[i].video.removeEventListener('canplay', this.canPlayListener);
+                this.videos.splice(i, 1);
+                logger.info('Video element disassociated from stream', this.stream.streamId);
+                return true;
+            }
+        }
+        return false;
+    }
+    pushNewStreamManagerVideo(streamManagerVideo) {
+        this.videos.push(streamManagerVideo);
+        this.addPlayEventToFirstVideo();
+        if (!this.stream.session.streamManagers.includes(this)) {
+            this.stream.session.streamManagers.push(this);
+        }
+    }
+    initializeVideoProperties(video) {
+        if (!(!this.remote && this.stream.displayMyRemote())) {
+            const ms = this.stream.getMediaStream();
+            if (ms && video.srcObject !== ms) {
+                video.srcObject = ms;
+            }
+        }
+        video.autoplay = true;
+        video.controls = false;
+        video.playsInline = true;
+        if (!video.id) {
+            video.id = (this.remote ? 'remote-' : 'local-') + 'video-' + this.stream.streamId;
+        }
+        if (this.remote && this.isMirroredVideo(video)) {
+            this.removeMirrorVideo(video);
+        }
+        else if (!this.remote && !this.stream.displayMyRemote()) {
+            video.muted = true;
+            if (this.isMirroredVideo(video) && !this.stream.outboundStreamOpts?.publisherProperties.mirror) {
+                this.removeMirrorVideo(video);
+            }
+            else if (this.stream.outboundStreamOpts?.publisherProperties.mirror && !this.stream.isSendScreen()) {
+                this.mirrorVideo(video);
+            }
+        }
+    }
+    addPlayEventToFirstVideo() {
+        const first = this.videos[0];
+        if (first?.video && !first.canplayListenerAdded) {
+            first.video.addEventListener('canplay', this.canPlayListener);
+            first.canplayListenerAdded = true;
+        }
+    }
+    isMirroredVideo(video) {
+        return video.style.transform === 'rotateY(180deg)' || video.style.webkitTransform === 'rotateY(180deg)';
+    }
+    mirrorVideo(video) {
+        video.style.transform = 'rotateY(180deg)';
+        video.style.webkitTransform = 'rotateY(180deg)';
+    }
+    removeMirrorVideo(video) {
+        video.style.transform = 'unset';
+        video.style.webkitTransform = 'unset';
+    }
+}

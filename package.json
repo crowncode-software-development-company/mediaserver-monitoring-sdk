@@ -1,0 +1,17 @@
+{
+  "name": "mediaserver-monitoring-sdk",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Workspace for MediaServer SDK and Example Frontend",
+  "workspaces": [
+    "packages/*",
+    "frontend"
+  ],
+  "scripts": {
+    "build:sdk": "npm run build -w @mediaserver/media-client",
+    "dev": "npm run build:sdk && npm run dev -w frontend",
+    "start": "npm install && npm run dev"
+  },
+  "author": "Crowncode",
+  "license": "ISC"
+}

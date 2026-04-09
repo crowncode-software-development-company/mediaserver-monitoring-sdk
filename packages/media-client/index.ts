@@ -1,0 +1,47 @@
+export { MediaClient } from './MediaClient';
+export { Session } from './Session';
+export { Stream } from './Stream';
+export { Connection } from './Connection';
+export { Subscriber } from './Subscriber';
+export { StreamManager } from './StreamManager';
+
+export { JsonRpcClient } from './JsonRpcClient';
+export { Logger } from './Logger';
+export { TypedEventEmitter } from './utils/EventEmitter';
+
+export type {
+    SessionEventMap,
+    StreamManagerEventMap,
+    StreamInternalEventMap,
+
+    StreamEvent,
+    ConnectionEvent,
+    StreamPlayingEvent,
+    SignalEvent,
+    ExceptionEvent,
+
+    MediaClientConfig,
+    TokenParams,
+
+    LocalConnectionOptions,
+    RemoteConnectionOptions,
+    StreamOptionsServer,
+    IceServerProperties,
+
+    InboundStreamOptions,
+    OutboundStreamOptions,
+    VideoDimensions,
+
+    PublisherProperties,
+    SubscriberProperties,
+
+    JsonRpcRequest,
+    JsonRpcResponse,
+    JsonRpcError,
+
+    StreamManagerVideo,
+    StreamMediaConstraints,
+    TypeOfVideo,
+    VideoInsertMode,
+} from './interfaces';
+

@@ -63,6 +63,6 @@ export class MediaClient {
         }
     }
     disableLogging() {
-        Logger;
+        logger.disableLogging();
     }
 }

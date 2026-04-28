@@ -16,13 +16,15 @@ export declare class JsonRpcClient {
     private ws;
     private rpcId;
     private readonly callbacks;
-    constructor(onEvent: ServerEventHandler, onError: ErrorHandler, onDisconnect: DisconnectHandler);
+    private pingTimer;
+    private readonly pingInterval;
+    constructor(onEvent: ServerEventHandler, onError: ErrorHandler, onDisconnect: DisconnectHandler, pingInterval?: number);
     /**
      * Установить WebSocket-соединение.
      */
     connect(wsUri: string): Promise<void>;
     /**
-     * Отправить JSON-RPC запрос и дождаться ответа
+     * Отправить JSON-RPC запрос и дождаться ответа.
      *
      * @typeParam T - тип ожидаемого result в ответе
      */
@@ -32,5 +34,7 @@ export declare class JsonRpcClient {
      */
     close(): void;
     private handleMessage;
+    private startPing;
+    private stopPing;
 }
 export {};

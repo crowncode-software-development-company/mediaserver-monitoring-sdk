@@ -25,11 +25,17 @@ export class JsonRpcClient {
         reject: (error: any) => void;
     }>();
 
+    private pingTimer: ReturnType<typeof setInterval> | null = null;
+    private readonly pingInterval: number;
+
     constructor(
         private readonly onEvent: ServerEventHandler,
         private readonly onError: ErrorHandler,
-        private readonly onDisconnect: DisconnectHandler
-    ) { }
+        private readonly onDisconnect: DisconnectHandler,
+        pingInterval?: number
+    ) {
+        this.pingInterval = pingInterval || 5000;
+    }
 
     /**
      * Установить WebSocket-соединение.
@@ -38,14 +44,20 @@ export class JsonRpcClient {
         return new Promise((resolve, reject) => {
             this.ws = new WebSocket(wsUri);
 
-            this.ws.onopen = () => resolve();
+            this.ws.onopen = () => {
+                this.startPing();
+                resolve();
+            };
 
             this.ws.onerror = (e) => {
                 this.onError(e);
                 reject(e);
             };
 
-            this.ws.onclose = () => this.onDisconnect();
+            this.ws.onclose = () => {
+                this.stopPing();
+                this.onDisconnect();
+            };
 
             this.ws.onmessage = (event) => {
                 this.handleMessage(event.data);
@@ -54,7 +66,7 @@ export class JsonRpcClient {
     }
 
     /**
-     * Отправить JSON-RPC запрос и дождаться ответа
+     * Отправить JSON-RPC запрос и дождаться ответа.
      *
      * @typeParam T - тип ожидаемого result в ответе
      */
@@ -84,6 +96,7 @@ export class JsonRpcClient {
      * Закрыть WebSocket-соединение и отменить все ожидающие запросы.
      */
     public close(): void {
+        this.stopPing();
         if (this.ws) {
             this.ws.close();
             this.ws = null;
@@ -128,6 +141,24 @@ export class JsonRpcClient {
             } else {
                 this.onEvent(msg.method, msg.params);
             }
+        }
+    }
+
+    private startPing(): void {
+        this.stopPing();
+        this.pingTimer = setInterval(() => {
+            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                this.send('ping', { interval: this.pingInterval }).catch(e => {
+                    logger.debug('[RPC] Ping failed', e);
+                });
+            }
+        }, this.pingInterval);
+    }
+
+    private stopPing(): void {
+        if (this.pingTimer) {
+            clearInterval(this.pingTimer);
+            this.pingTimer = null;
         }
     }
 }
